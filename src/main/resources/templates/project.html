@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="ISO-8859-1">
+    <title>Project</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <style>
+        body{
+            background:#339999;
+        }
+        .container{
+            margin-top:2px;
+            margin-left: 332px;
+        }
+
+        #barGraph{
+            padding-left: 79px;
+        }
+
+        .navbar {
+            background:#006666;
+        }
+        #repoName{
+            top:0;
+        }
+
+        .h3{
+            top: 0;
+            margin-top:0;
+        }
+
+        .borderless td, .borderless th {
+            border: none;
+        }
+
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            padding: 35px 0 0 10px;
+            border-right: 1px solid #006666;
+            background: #3DCCCC;
+        }
+       #container {
+            min-width: 600px;
+            max-width: 800px;
+            margin: 18px auto;
+            margin-left: 517px;
+            height: 340px;
+        }
+
+        ol, ul{
+            padding-left: 16px;
+        }
+
+        #searchForm {
+            right: 0;
+        }
+
+        #projSearch {
+            width: 270px;
+        }
+
+    </style>
+    <script type="text/javascript">
+         $(document).ready(function(){
+            var ownerName = $("#owner").val();
+            var projName = $("#project").val();
+
+            getCommitters(ownerName, projName);
+            getCommits(ownerName, projName);
+
+            $("#search").click(function() {
+                var projName = $("#projSearch").val();
+                if(projName){
+                    window.location.href = '/search/home/' + projName;
+                }
+            });
+
+
+         });
+
+         function getCommitters(ownerName,projName) {
+                $.ajax({
+                 url:'/search/committers/'+ownerName+'/'+projName,
+                 type:"GET",
+                 success:function(result){
+                    $("#repoName").append(
+                     "<h3>Repository: "+projName+"</h3>"
+                   );
+                   $("#contriHead").append(
+                       "<h4>Contributors</h4>"
+                   );
+                    const data = getData(result);
+                    createPieHighChart(data);
+                    var count = 0;
+                    result.forEach(function(dt){
+                     $("#contributors").append("<ul>"+
+                     "<li>"+dt.login+" "+dt.contributions+"</li>"
+                     +"</ul>"
+                     );
+                     count++;
+                   });
+                   if(count<23){
+                     const btn = document.querySelector('.sidebar');
+                     btn.style.bottom = '0';
+                   }
+                 },
+                 error:function(err){
+                     console.log(err);
+                 }
+             });
+          }
+           function getData(result){
+                const dataArray=[];
+
+                 result.forEach(function(dt){
+                          const array = [];
+                          array.push(dt.login);
+                          array.push(dt.contributions);
+                          dataArray.push(array)
+
+
+                  });
+                return dataArray;
+              }
+
+             function createPieHighChart(data) {
+                   Highcharts.chart('pieGraph', {
+                    chart : {
+                        backgroundColor: '#3DCCCC',
+                        type : 'pie',
+                        options3d : {
+                            enabled : true,
+                            alpha : 50,
+                            beta : 0
+                        }
+                    },
+                    title : {
+                        text : 'List of Committers'
+                    },
+                    tooltip : {
+                        pointFormat : '{series.name}: <b>{point.percentage:.1f}%</b>'
+                    },
+                    plotOptions : {
+                        pie : {
+                            allowPointSelect : true,
+                            cursor : 'pointer',
+                            depth : 35,
+                            dataLabels : {
+                                enabled : true,
+                                format : '{point.name}'
+                            }
+                        }
+                    },
+                    series : [ {
+                        type : 'pie',
+                        name : 'Commits',
+                        data : data
+                    } ]
+                });
+
+             }
+             function getCommits(ownerName,projName) {
+                  $.ajax({
+                   url:'/search/commits/'+ownerName+'/'+projName,
+                   type:"GET",
+                   success:function(result){
+
+                   const data = getDataResult(result);
+                   createBarHighChart(data);
+
+                   const timelineData = getTimelineData(result);
+                   createTimeHighChart(timelineData);
+
+                   },
+                   error:function(err){
+                       console.log(err);
+                   }
+               });
+            }
+
+            function getDataResult(result){
+                const dataArray = [];
+
+                result.forEach(function(dt){
+                    if(dt.author != null){
+                      dataArray.push(dt.author.login);
+                    }
+                });
+              var data = {};
+                if (dataArray instanceof Array) { // Check if input is array.
+                    dataArray.forEach(function (v, i) {
+                        if (!data[v]) { // Initial object property creation.
+                            data[v] = [i]; // Create an array for that property.
+                        } else { // Same occurrences found.
+                            data[v].push(i); // Fill the array.
+                        }
+                    });
+                }
+                const resultArray =[],
+                name=[],
+                contributions=[];
+                 Object.keys(data).forEach(function (v) {
+                    name.push(v);
+                    contributions.push(data[v].length);
+
+                });
+                resultArray.push(name, contributions);
+
+                return resultArray;
+            }
+
+             function createBarHighChart(data){
+                 Highcharts.chart('barGraph', {
+                    chart: {
+                        backgroundColor: '#3DCCCC',
+                        type: 'column'
+                    },
+                    title: {
+                        text: 'Committers Contribution'
+                    },
+                    subtitle: {
+                        text: 'Base on the latest 100 commits'
+                    },
+                    xAxis: {
+                        categories: data[0],
+                        crosshair: true
+                    },
+                    yAxis: {
+                        min: 0,
+                        max:100,
+                        title: {
+                            text: 'Contributions [in %]'
+                        }
+                    },
+                    tooltip: {
+                        headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+                        pointFormat: '<tr><td style="color:{series.color};padding:0">Contribution: </td>' +
+                        '<td style="padding:0"><b>{point.y:.1f} %</b></td></tr>',
+                        footerFormat: '</table>',
+                        shared: true,
+                        useHTML: true
+                    },
+                    plotOptions: {
+                        column: {
+                            pointPadding: 0.2,
+                            borderWidth: 0
+                        }
+                    },
+                    series: [{
+                        name: 'Contributors',
+                        data: data[1]
+                    }]
+                });
+            }
+
+             function getTimelineData(result){
+              const dataArray = [];
+
+                result.forEach(function (v,i) {
+
+                   const date = new Date(v.commit.author.date);
+                   if(v.author != null){
+                       const data = {
+                                      x: Date.UTC(date.getFullYear(), date.getDate(), date.getMonth()+1),
+                                      name: v.author.login,
+                                      label: v.author.login,
+                                      description: v.commit.message
+                                    }
+                       const map = new Map(Object.entries(data));
+                       const obj = Object.fromEntries(map);
+                       dataArray.push(obj);
+                   }
+                });
+                return dataArray;
+            }
+
+            function createTimeHighChart(timelineData){
+                Highcharts.chart('container', {
+                    chart: {
+                        zoomType: 'x',
+                        backgroundColor: '#3DCCCC',
+                        type: 'timeline'
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        visible: false
+                    },
+                    yAxis: {
+                        gridLineWidth: 1,
+                        title: null,
+                        labels: {
+                            enabled: false
+                        }
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    title: {
+                        text: 'Timeline of Commits'
+                    },
+                    subtitle: {
+                        text: 'Base on the latest 100 commits'
+                    },
+                    tooltip: {
+                        style: {
+                            width: 300
+                        }
+                    },
+                    series: [{
+                        dataLabels: {
+                            allowOverlap: false,
+                            format: '<span style="color:{point.color}">? </span><span style="font-weight: bold;" > ' +
+                                '{point.x:%d %b %Y}</span><br/>{point.label}'
+                        },
+                        marker: {
+                            symbol: 'circle'
+                        },
+                        data: timelineData
+                    }]
+                });
+            }
+
+
+    </script>
+</head>
+<body>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-3d.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/timeline.js"></script>
+    <nav class="navbar navbar-dark fixed-top flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-sm-5 mr-0">Github Dashboard</a>
+        <ul class="navbar-nav px-3 col-sm-4">
+            <li class="nav-item text-nowrap">
+                <a class="nav-link" href="/home">Home</a>
+            </li>
+        </ul>
+        <form id="searchForm" class="form-inline col-sm-3 mr-0 pd-0">
+            <input id="projSearch" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+            <button type="button" id="search" class="btn btn-light my-sm-0">Search</button>
+        </form>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 d-none d-md-block sidebar">
+                <div class="left-sidebar">
+                    <div id="repoName">
+
+                    </div>
+                    <div id="contriHead" class="lead">
+
+                    </div>
+                    <div id="contributors">
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="container">
+    <input type="hidden" name="owner" id="owner" th:with="owner=*{owner}" th:value="${owner}">
+    <input type="hidden" name="project" id="project" th:with="project=*{project}" th:value="${project}">
+    <div id="pieGraph"
+         style="width: 600px; background:#339999; height: 340px; margin: 0 auto" class="col-sm-6">
+    </div>
+    <div id="barGraph"
+         style="width: 600px; background:#339999; height: 340px; margin: 0 auto" class="col-sm-6">
+    </div>
+
+</div>
+    <div id="container"></div>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Home</title>
+    <script src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+
+
+    <style>
+        body{
+            background:#339999;
+        }
+        .container{
+            margin-top:226px;
+        }
+        .navbar {
+            background:#006666;
+        }
+        .glyphicon-search{
+            font-size:20px;
+        }
+        .btn-default{
+            background:#235ebb;
+            width:100px;
+            padding:12.5px;
+        }
+        .form-control{
+            padding:25px;
+            font-size:20px;
+        }
+        #tdata tr:hover {
+          background-color: white;
+        }
+
+        .btn-default:focus, .btn-default:hover {
+            background-color: #006666;
+            background-position: 0 -50px;
+        }
+
+    </style>
+    <script type="text/javascript">
+         $(document).ready(function(){
+            var projName = $("#searchName").val();
+             if(projName){
+                 start();
+              }
+            $("#search").click(function() {
+                start();
+            });
+
+         });
+
+         function start(){
+            var projName = $("#searchName").val();
+                if(projName){
+                    const btn = document.querySelector('.container');
+                    btn.style.marginTop = '20px';
+
+                    $("#theader").empty();
+                    $("#searchCount").empty();
+                    $("#tdata").empty();
+                    searchProject();
+                    projectLink();
+                }
+         }
+
+         function searchProject() {
+             var projName = $("#searchName").val();
+              $.ajax({
+                 url:'/search/'+projName+'/repositories',
+                 type:"GET",
+                 success:function(result){
+
+                   var count = 1;
+                   var projUrl = "/project";
+                   $("#searchCount").append(
+                     "<h1>Number of Result: "+result[0]+"</h1>"
+                   );
+                   $("#theader").append(
+                           "<tr>"+
+                               "<th>No.</th>"+
+                               "<th>Name</th>"+
+                               "<th>Full Name</th>"+
+                               "<th>URL</th>"+
+                           "</tr>"
+                   );
+                   result[2].forEach(function(dt){
+                     $("#tdata").append("<tr data-href= "+projUrl+"/"+dt.name+"/"+dt.owner.login+">"+
+                     "<td>"+count+"</td>"+
+                     "<td>"+dt.name+"</td>"+
+                     "<td>"+dt.full_name+"</td>"+
+                     "<td>"+dt.url+"</td>"
+                     +"</tr>"
+                     );
+                     count++;
+                   });
+                 },
+                 error:function(err){
+                     console.log(err);
+                 }
+             });
+         }
+
+         function projectLink(){
+            $(document.body).on("click", "tr[data-href]", function() {
+                window.location.href = this.dataset.href;
+            });
+         }
+    </script>
+
+</head>
+<body>
+<nav class="navbar navbar-dark fixed-top flex-md-nowrap p-0 shadow">
+    <a class="navbar-brand col-sm-12 mr-0">Github Dashboard</a>
+</nav>
+<div class="container">
+    <div>
+        <h1 class="display-1">GitHub Search Repository...</h1>
+    </div>
+    <form>
+        <div class="input-group">
+            <input id="searchName" type="text" class="form-control" placeholder="Search project" th:value="${project}" required>
+            <div class="input-group-btn">
+                <button type="button" class="btn btn-default" id="search">
+                    <i class="glyphicon glyphicon-search"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+    <div id="searchCount">
+
+    </div>
+    <table id="tableContainer" class="table">
+        <thead id="theader">
+
+        </thead>
+        <tbody id="tdata">
+
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
